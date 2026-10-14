@@ -16,6 +16,8 @@ from app.exceptions import FileTooLargeError, ValidationError
 ALLOWED_EXTENSIONS: set[str] = {"pdf", "docx"}
 MAX_FILE_SIZE_MB: int = 5
 MAX_FILE_SIZE_BYTES: int = MAX_FILE_SIZE_MB * 1024 * 1024
+MAX_DOCX_UNCOMPRESSED_BYTES: int = 25 * 1024 * 1024
+MAX_DOCX_MEMBERS: int = 2_000
 
 
 def _extension(filename: str) -> str:
@@ -46,6 +48,10 @@ def _validate_file_signature(contents: bytes, ext: str) -> None:
                 names = set(archive.namelist())
                 if "[Content_Types].xml" not in names or "word/document.xml" not in names:
                     raise ValidationError("Cannot read DOCX — it may be corrupted or unsupported.")
+                if len(names) > MAX_DOCX_MEMBERS:
+                    raise ValidationError("Cannot read DOCX — it contains too many archive entries.")
+                if sum(info.file_size for info in archive.infolist()) > MAX_DOCX_UNCOMPRESSED_BYTES:
+                    raise ValidationError("Cannot read DOCX — its uncompressed content is too large.")
                 if archive.testzip() is not None:
                     raise ValidationError("Cannot read DOCX — it may be corrupted or unsupported.")
         except ValidationError:
@@ -58,18 +64,27 @@ def _validate_file_signature(contents: bytes, ext: str) -> None:
 
 async def save_file(file: UploadFile, ext: str) -> str:
     """Persist a validated upload and return the generated stored path."""
-    contents = await file.read()
-
-    if len(contents) > MAX_FILE_SIZE_BYTES:
-        raise FileTooLargeError(f"Maximum file size is {MAX_FILE_SIZE_MB} MB.")
-    if len(contents) == 0:
-        raise ValidationError("The uploaded file is empty.")
-    _validate_file_signature(contents, ext)
-
     dest = UPLOAD_DIR / f"{uuid.uuid4().hex}.{ext}"
-    with open(dest, "wb") as f:
-        f.write(contents)
-    return str(dest)
+    contents = bytearray()
+    try:
+        # Read one byte past the limit so oversized requests are rejected without
+        # first allocating an attacker-controlled amount of memory.
+        while len(contents) <= MAX_FILE_SIZE_BYTES:
+            chunk = await file.read(min(1024 * 1024, MAX_FILE_SIZE_BYTES + 1 - len(contents)))
+            if not chunk:
+                break
+            contents.extend(chunk)
+        if len(contents) > MAX_FILE_SIZE_BYTES:
+            raise FileTooLargeError(f"Maximum file size is {MAX_FILE_SIZE_MB} MB.")
+        if not contents:
+            raise ValidationError("The uploaded file is empty.")
+        _validate_file_signature(bytes(contents), ext)
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(contents)
+        return str(dest)
+    except Exception:
+        dest.unlink(missing_ok=True)
+        raise
 
 
 def extract_text(filepath: str, file_type: str) -> str:

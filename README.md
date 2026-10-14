@@ -15,11 +15,11 @@ The application accepts PDF and DOCX resumes, extracts structured profile data, 
 | Backend | Python, FastAPI, SQLAlchemy |
 | Database | SQLite with scoped repositories and foreign keys |
 | Frontend | Static HTML, CSS, and Vanilla JavaScript |
-| Resume input | PDF and DOCX, maximum 5 MB, signature validation |
+| Resume input | PDF and DOCX, maximum 5 MB, signature validation, bounded DOCX archive expansion |
 | Matching | Deterministic required/preferred skill and requirement comparison |
 | AI integrations | Optional Groq generation and Hugging Face semantic retrieval |
 | Fallback | Local deterministic analysis and honest provider-unavailable responses |
-| Verification | 71 functional/regression tests, live HTTP flows, authorization audits, and database integrity checks |
+| Verification | Functional/regression tests, focused upload guards, live HTTP flows, authorization audits, and database integrity checks |
 
 ## The main idea
 
@@ -294,7 +294,8 @@ uvicorn main:app --reload
 ├── .env.example         # Safe configuration template
 ├── .gitignore            # Runtime and secret exclusions
 ├── main.py               # Root Uvicorn entry point
-├── requirements.txt      # Python dependencies
+├── requirements.txt      # Runtime and test dependencies
+├── requirements-dev.txt  # Ruff and development validation dependencies
 ├── pytest.ini            # Pytest configuration
 ├── run.sh                # Linux/macOS launcher
 ├── run.bat               # Windows launcher
@@ -318,13 +319,14 @@ Run the default checks with:
 pytest -q
 for f in frontend/js/*.js; do node --check "$f"; done
 python -m compileall -q app main.py
+ruff check app main.py tests
 ```
 
 The repaired version was also checked through live HTTP flows and database audits.
 
 | Verification | Result |
 |---|---:|
-| Functional and regression suite | **71 passed, 0 failed** |
+| Functional, regression, and focused safety suite | **73 passed, 0 failed** |
 | Repeated health probes | **30 / 30 passed** |
 | Frontend pages | **7 HTML pages loaded** |
 | JavaScript syntax checks | **8 scripts passed** |

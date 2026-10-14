@@ -21,6 +21,8 @@ def _required_env(name: str) -> str:
         raise RuntimeError(
             f"{name} is required. Set it in the deployment environment or a local .env file."
         )
+    if value.lower().startswith("replace-with-"):
+        raise RuntimeError(f"{name} still contains the placeholder from .env.example.")
     return value
 
 
@@ -28,7 +30,12 @@ SECRET_KEY: str = _required_env("SECRET_KEY")
 if len(SECRET_KEY) < 32:
     raise RuntimeError("SECRET_KEY must be at least 32 characters long.")
 ALGORITHM: str = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+try:
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+except ValueError as exc:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be a positive integer.") from exc
+if ACCESS_TOKEN_EXPIRE_MINUTES <= 0:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be a positive integer.")
 
                                                                                 
 UPLOAD_DIR: Path = BASE_DIR / "uploads"

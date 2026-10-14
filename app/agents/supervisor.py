@@ -231,7 +231,7 @@ def _run_resume(state: dict[str, Any]) -> dict[str, Any]:
         elif wants_evidence:
             line = _explicit_evidence(full_name, resume_text)
             evidence = f'"{line}" (source: raw resume text)' if line else (
-                f"no exact matching line in raw resume text; value stored in the structured 'full_name' extraction field."
+                "no exact matching line in raw resume text; value stored in the structured 'full_name' extraction field."
             )
             sections.append(f"Full name: {full_name}.\nSupporting resume evidence: {evidence}")
         else:

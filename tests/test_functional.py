@@ -3,8 +3,6 @@ import os
 import shutil
 import tempfile
 import asyncio
-import json
-import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -529,7 +527,7 @@ def test_selected_resume_is_the_only_resume_in_advisor_rag_prompt(monkeypatch) -
     register_user()
     token = login_user()
     resume_a = upload_resume(token, "RAG RESUME A UNIQUE\nPython\n")
-    resume_b = upload_resume(token, "RAG RESUME B UNIQUE\nJava\n")
+    upload_resume(token, "RAG RESUME B UNIQUE\nJava\n")
     response = client.post(
         "/api/chat",
         json={"message": "How can I improve my resume?", "resume_id": resume_a["id"]},
@@ -1450,3 +1448,35 @@ def test_career_advisor_skill_comparison_matrix_is_grounded_and_context_aware() 
     assert after_false_history["agent_used"] == "comparison"
     assert "Kubernetes | No explicit evidence. | NOT_SUPPORTED" in after_false_history["reply"]
     assert "Preferred: AWS | No explicit evidence. | NOT_SUPPORTED" in after_false_history["reply"]
+
+
+
+def test_oversized_upload_is_rejected_without_creating_an_artifact() -> None:
+    register_user()
+    token = login_user()
+    before = set(TEST_UPLOAD_DIR.iterdir())
+    response = client.post(
+        "/api/resumes/upload",
+        files={
+            "file": (
+                "large.pdf",
+                io.BytesIO(b"%PDF-" + b"x" * file_service.MAX_FILE_SIZE_BYTES),
+                "application/pdf",
+            )
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 413
+    assert set(TEST_UPLOAD_DIR.iterdir()) == before
+
+
+def test_docx_archive_expansion_limit_is_rejected() -> None:
+    import zipfile
+
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("word/document.xml", "<document/>")
+        archive.writestr("word/large.xml", "x" * (file_service.MAX_DOCX_UNCOMPRESSED_BYTES + 1))
+    with pytest.raises(file_service.ValidationError, match="uncompressed"):
+        file_service._validate_file_signature(payload.getvalue(), "docx")

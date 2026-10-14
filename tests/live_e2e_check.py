@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import os
-import time
 import uuid
 
 import requests
@@ -40,7 +39,7 @@ def main() -> None:
 
     email = f"live-{uuid.uuid4().hex[:10]}@example.com"
     password = "Strong123"
-    user = expect(requests.post(f"{BASE}/api/auth/register", json={"email": email, "password": password, "full_name": "Live E2E User"}, timeout=30), 201, "register")
+    expect(requests.post(f"{BASE}/api/auth/register", json={"email": email, "password": password, "full_name": "Live E2E User"}, timeout=30), 201, "register")
     token = expect(requests.post(f"{BASE}/api/auth/login", json={"email": email, "password": password}, timeout=30), 200, "login")["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     admin_token = expect(requests.post(f"{BASE}/api/auth/login", json={"email": os.environ["ADMIN_EMAIL"], "password": os.environ["ADMIN_PASSWORD"]}, timeout=30), 200, "admin login")["access_token"]

@@ -5,7 +5,7 @@ Run with:
 """
 import asyncio
 
-from app.agents.supervisor import _keyword_route, run_supervisor
+from app.agents.supervisor import run_supervisor
 from app.schemas.job import JobOut
 
 

@@ -7,3 +7,5 @@ from app.rag.knowledge_base import (
     get_knowledge_base,
 )
 from app.rag.retriever import Retriever              
+
+__all__ = ["CATEGORIES", "DocumentChunk", "KnowledgeBase", "get_knowledge_base", "Retriever"]

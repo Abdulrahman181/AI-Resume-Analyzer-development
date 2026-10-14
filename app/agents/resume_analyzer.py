@@ -5,13 +5,13 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
-from app.core import GROQ_API_KEY, HF_MODEL, HF_TOKEN
+from app.core import GROQ_API_KEY, HF_MODEL
 from app.rag.knowledge_base import get_knowledge_base
 from app.rag.retriever import Retriever
 from app.schemas.job import JobOut
 from app.schemas.matching import MatchResult
 from app.schemas.resume import ContactInfo, EducationEntry, ExperienceEntry, ProjectEntry, ResumeAnalysis, ResumeImprovementOut, SkillSet
-from app.services.groq import GroqUnavailableError, complete_json
+from app.services.groq import complete_json
 
 load_dotenv()
 
