@@ -3,7 +3,7 @@
 import json
 from typing import TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -17,7 +17,15 @@ def parse_json_list(raw: str | None, model: type[T] | None = None) -> list:
         if not isinstance(data, list):
             return []
         if model:
-            return [model(**item) if isinstance(item, dict) else item for item in data]
+            parsed = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    parsed.append(model(**item))
+                except ValidationError:
+                    continue
+            return parsed
         return data
     except (json.JSONDecodeError, TypeError):
         return []

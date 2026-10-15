@@ -65,6 +65,39 @@ Reviewed the tracked Python source, FastAPI routers/services/repositories, SQLAl
 - Existing full Ruff style output still includes framework-oriented `B008` dependency declaration warnings and formatting findings outside the correctness gate. These do not indicate syntax or undefined-name failures.
 - For deployment, use a managed database/object storage, a secrets manager, request rate limits, background parsing workers, observability, and provider timeouts/monitoring. Add a migration framework before evolving schema beyond the current SQLite helper.
 
+## Second Senior Review
+
+### Scope and baseline
+
+The second pass re-read every tracked Python, configuration, test, README, frontend JavaScript/HTML, launch script, and dependency file; reviewed `git diff HEAD^..HEAD` and recent history; confirmed that no notebooks are present; and re-ran the local test/static-validation gates. No training corpus, labeled evaluation set, split definition, or serialized ML artifact exists in this repository, so no end-to-end ML metric or provider-backed result is claimed.
+
+### Findings and fixes
+
+- **Database portability:** `app/database/__init__.py` passed SQLite's `check_same_thread` option to every SQLAlchemy backend, which breaks non-SQLite deployments. Engine options are now conditional on a SQLite URL.
+- **Email identity:** registration accepted case variants of the same email and could create duplicate logical accounts on case-sensitive databases. Registration email values are now normalized to lowercase before the uniqueness check and insert.
+- **Chat input contract:** whitespace-only or unbounded messages could be persisted and sent to routing/provider code. `ChatRequest` now strips and rejects blank messages and caps length at 10,000 characters; the response schema no longer uses a mutable list default.
+- **Persisted JSON resilience:** malformed or partially incompatible JSON list columns could raise Pydantic validation errors during response serialization. Model hydration now skips invalid list items and returns safe data for the remaining records.
+- **Knowledge-base cache correctness:** the shared knowledge-base loader accepted a category filter while caching the result, allowing the first category-scoped load to poison later searches. The cache now stores the complete KB and applies category filtering at search time; semantic initialization can also be requested after an earlier non-semantic load.
+- **Optional RAG provider behavior:** Hugging Face chat failures or empty responses could become a 500 instead of a useful local response. Retriever calls now fall back to deterministic retrieved context.
+- **Malformed KB rows:** non-object JSON entries are ignored instead of causing startup/load-time attribute errors.
+- Added regression tests for all of the above except backend-specific deployment startup; no fabricated data or metrics were added.
+
+### Second-pass validation
+
+- `pytest -q`: **76 passed, 0 failed**.
+- `ruff check .`: **passed** (all tracked Python files, including tests and scripts).
+- `python -m compileall -q app main.py tests`: **passed**.
+- `node --check frontend/js/*.js`: **passed**.
+- `git diff --check`: **passed**; no tracked notebooks, Python bytecode, local database, environment file, or execution-output artifacts remain.
+- Direct runtime smoke checks confirmed 319 KB entries across all five categories, blank-chat rejection, and safe application imports.
+
+### Remaining risks
+
+- The default dependency set supplies SQLite only; non-SQLite operation now avoids the immediate engine-argument defect but still requires an appropriate SQLAlchemy driver and production database migration strategy.
+- Provider-backed Groq/Hugging Face paths were not exercised because credentials were unavailable. They still need staging tests, timeouts, rate limits, and monitoring.
+- PDF/DOCX parsing is bounded at upload but remains CPU/memory-sensitive third-party work and should run in an isolated worker for hostile production traffic.
+- There is no real corpus, ground-truth labeling, train/validation/test split, or benchmark; matching and resume scores remain deterministic product heuristics rather than validated ML metrics.
+
 ## Local commit
 
 A local-only commit was created after validation. Nothing was pushed to GitHub.

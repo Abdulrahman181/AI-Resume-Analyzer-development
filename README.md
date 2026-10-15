@@ -177,6 +177,8 @@ The repaired implementation includes:
 - Admin-only job creation, update, and deletion.
 - Request IDs and structured logs that do not record credentials or raw documents.
 - Safe normalization of provider and parser failures.
+- Lowercased registration emails, bounded non-blank chat messages, and resilient parsing of legacy JSON columns.
+- SQLite-only engine options are applied conditionally so a configured non-SQLite SQLAlchemy backend is not rejected by SQLite-specific arguments.
 - Embedding-cache validation using model, version, content fingerprint, and vector shape rather than entry count alone.
 - No silent password reset for an existing administrator during restart.
 
@@ -326,7 +328,7 @@ The repaired version was also checked through live HTTP flows and database audit
 
 | Verification | Result |
 |---|---:|
-| Functional, regression, and focused safety suite | **73 passed, 0 failed** |
+| Functional, regression, and focused safety suite | **76 passed, 0 failed** |
 | Repeated health probes | **30 / 30 passed** |
 | Frontend pages | **7 HTML pages loaded** |
 | JavaScript syntax checks | **8 scripts passed** |

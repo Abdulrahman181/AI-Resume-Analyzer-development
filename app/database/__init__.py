@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.core import SQLALCHEMY_DATABASE_URL
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
+_engine_kwargs = {}
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **_engine_kwargs)
 
 
 if engine.url.get_backend_name() == "sqlite":

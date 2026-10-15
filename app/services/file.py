@@ -6,12 +6,12 @@ import os
 import uuid
 import zipfile
 
-logger = logging.getLogger(__name__)
-
 from fastapi import UploadFile
 
 from app.core import UPLOAD_DIR
 from app.exceptions import FileTooLargeError, ValidationError
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS: set[str] = {"pdf", "docx"}
 MAX_FILE_SIZE_MB: int = 5

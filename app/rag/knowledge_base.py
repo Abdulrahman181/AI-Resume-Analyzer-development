@@ -112,11 +112,15 @@ class KnowledgeBase:
             return 0
 
         data = json.loads(json_path.read_text(encoding="utf-8"))
-        raw = data.get("knowledge_entries", data if isinstance(data, list) else [])
+        raw = data.get("knowledge_entries", []) if isinstance(data, dict) else data
+        if not isinstance(raw, list):
+            raw = []
         self.entries.clear()
         self.embeddings.clear()
         count = 0
         for item in raw:
+            if not isinstance(item, dict):
+                continue
             cat = item.get("category", "")
             if categories and cat not in categories:
                 continue
@@ -455,10 +459,14 @@ def get_knowledge_base(
     global _default_kb
     if _default_kb is None or not _default_kb.entries:
         kb = KnowledgeBase()
-        kb.load_json(categories=categories)
+        # Keep one complete cache. Category filtering belongs to search, not
+        # cache construction; otherwise the first request narrows later ones.
+        kb.load_json()
         if build_semantic and HF_TOKEN:
             kb.build_embeddings()
         _default_kb = kb
+    elif build_semantic and HF_TOKEN and not _default_kb.embeddings:
+        _default_kb.build_embeddings()
     return _default_kb
 
 

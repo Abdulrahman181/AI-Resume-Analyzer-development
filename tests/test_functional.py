@@ -1480,3 +1480,34 @@ def test_docx_archive_expansion_limit_is_rejected() -> None:
         archive.writestr("word/large.xml", "x" * (file_service.MAX_DOCX_UNCOMPRESSED_BYTES + 1))
     with pytest.raises(file_service.ValidationError, match="uncompressed"):
         file_service._validate_file_signature(payload.getvalue(), "docx")
+
+
+def test_registration_normalizes_email_and_rejects_case_variant_duplicate() -> None:
+    register_user("Case.User@Example.COM")
+    duplicate = client.post(
+        "/api/auth/register",
+        json={"email": "case.user@example.com", "password": "Another123"},
+    )
+    assert duplicate.status_code == 409
+
+
+def test_blank_chat_message_is_rejected_before_persistence() -> None:
+    register_user()
+    token = login_user()
+    response = client.post(
+        "/api/chat",
+        json={"message": "   "},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 422
+
+
+def test_knowledge_base_category_filter_does_not_poison_shared_cache() -> None:
+    from app.rag.knowledge_base import get_knowledge_base, reset_knowledge_base
+
+    reset_knowledge_base()
+    full = get_knowledge_base()
+    filtered = full.search("Python", category="skill")
+    assert filtered
+    assert get_knowledge_base().entries == full.entries
+    assert get_knowledge_base().search("resume", category="resume_guideline")

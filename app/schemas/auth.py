@@ -12,6 +12,11 @@ class UserCreate(BaseModel):
     full_name: str | None = None
     password: str
 
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
     @field_validator("username")
     @classmethod
     def valid_username(cls, value: str | None) -> str | None:

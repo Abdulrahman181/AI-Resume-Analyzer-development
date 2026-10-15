@@ -65,9 +65,16 @@ class Retriever:
                 query, top_k=top_k, category=category, mode=mode
             )
 
-        response = self._client.chat.completions.create(
-            model=HF_RAG_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-        )
-        return response.choices[0].message.content
+        try:
+            response = self._client.chat.completions.create(
+                model=HF_RAG_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+            )
+            content = response.choices[0].message.content
+            if content and content.strip():
+                return content.strip()
+        except Exception:
+            # Retrieval remains useful when an optional provider is unavailable.
+            pass
+        return self.retrieve_as_context(query, top_k=top_k, category=category, mode=mode)
